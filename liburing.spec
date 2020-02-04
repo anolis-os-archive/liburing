@@ -1,6 +1,8 @@
+%define alicloud_base_release 1
+
 Name: liburing
 Version: 0.3
-Release: 1%{?dist}
+Release: 1.%{alicloud_base_release}%{?dist}
 Summary: Linux-native io_uring I/O access library
 License: LGPLv2+
 Source: https://brick.kernel.dk/snaps/%{name}-%{version}.tar.gz
@@ -48,6 +50,9 @@ for the Linux-native io_uring.
 %{_mandir}/man2/*
 
 %changelog
+* Tue Feb 4 2020 Chunmei Xu <xuchunmei@linux.alibaba.com> - 0.3-1.1
+- Rebuild for Alibaba Cloud Linux
+
 * Tue Jan 7 2020 Stefan Hajnoczi <stefanha@redhat.com> - 0.3-1
 - Add IORING_OP_STATX
 - Add IORING_OP_OPENAT/IORING_OP_CLOSE helpers
