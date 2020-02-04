@@ -30,7 +30,8 @@ for the Linux-native io_uring.
 %autosetup -p1
 
 %build
-%set_build_flags
+CFLAGS="${CFLAGS:-%__global_cflags}" ; export CFLAGS
+LDFLAGS="${LDFLAGS:-%__global_ldflags}"; export LDFLAGS
 ./configure --prefix=%{_prefix} --libdir=/%{_libdir} --mandir=%{_mandir} --includedir=%{_includedir}
 
 %make_build
@@ -53,6 +54,7 @@ for the Linux-native io_uring.
 %changelog
 * Tue Feb 4 2020 Chunmei Xu <xuchunmei@linux.alibaba.com> - 0.3-1.2
 - fix test/accept-reuse.c compile error
+- remove unsupported macros
 
 * Tue Feb 4 2020 Chunmei Xu <xuchunmei@linux.alibaba.com> - 0.3-1.1
 - Rebuild for Alibaba Cloud Linux
