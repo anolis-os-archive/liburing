@@ -1,4 +1,4 @@
-%define alicloud_base_release 1
+%define alicloud_base_release 2
 
 Name: liburing
 Version: 0.3
@@ -6,6 +6,7 @@ Release: 1.%{alicloud_base_release}%{?dist}
 Summary: Linux-native io_uring I/O access library
 License: LGPLv2+
 Source: https://brick.kernel.dk/snaps/%{name}-%{version}.tar.gz
+Patch0: 0001-test-accept-reuse-fix-C99-ism.patch
 URL: https://git.kernel.dk/cgit/liburing/
 BuildRequires: gcc
 
@@ -26,7 +27,7 @@ This package provides header files to include and libraries to link with
 for the Linux-native io_uring.
 
 %prep
-%autosetup
+%autosetup -p1
 
 %build
 %set_build_flags
@@ -50,6 +51,9 @@ for the Linux-native io_uring.
 %{_mandir}/man2/*
 
 %changelog
+* Tue Feb 4 2020 Chunmei Xu <xuchunmei@linux.alibaba.com> - 0.3-1.2
+- fix test/accept-reuse.c compile error
+
 * Tue Feb 4 2020 Chunmei Xu <xuchunmei@linux.alibaba.com> - 0.3-1.1
 - Rebuild for Alibaba Cloud Linux
 
