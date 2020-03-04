@@ -1,12 +1,15 @@
-%define alicloud_base_release 2
+%define alicloud_base_release 3
 
 Name: liburing
 Version: 0.3
-Release: 1.%{alicloud_base_release}%{?dist}
+Release: 1.%{alicloud_base_release}%{?dist}.alnx
 Summary: Linux-native io_uring I/O access library
 License: LGPLv2+
 Source: https://brick.kernel.dk/snaps/%{name}-%{version}.tar.gz
 Patch0: 0001-test-accept-reuse-fix-C99-ism.patch
+Patch1: 0002-__io_uring_get_cqe-eliminate-unnecessary-io_uring_en.patch
+Patch2: 0003-__io_uring_get_cqe-don-t-subtract-negative-error-fro.patch
+Patch3: 0004-__io_uring_get_cqe-fix-spurious-EAGAIN.patch
 URL: https://git.kernel.dk/cgit/liburing/
 BuildRequires: gcc
 
@@ -52,6 +55,9 @@ LDFLAGS="${LDFLAGS:-%__global_ldflags}"; export LDFLAGS
 %{_mandir}/man2/*
 
 %changelog
+* Wed Mar 4 2020 Chunmei Xu <xuchunmei@linux.alibaba.com> - 0.3-1.3.alnx
+- __io_uring_get_cqe: eliminate unnecessary io_uring_enter() syscalls
+
 * Tue Feb 4 2020 Chunmei Xu <xuchunmei@linux.alibaba.com> - 0.3-1.2
 - fix test/accept-reuse.c compile error
 - remove unsupported macros

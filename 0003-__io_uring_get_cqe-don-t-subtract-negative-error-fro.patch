@@ -1,0 +1,30 @@
+From 0edcef5700fd558d2548532e0e5db26cb74d19ca Mon Sep 17 00:00:00 2001
+From: Jens Axboe <axboe@kernel.dk>
+Date: Mon, 2 Mar 2020 08:27:03 -0700
+Subject: [PATCH 2/3] __io_uring_get_cqe: don't subtract negative error from
+ 'submit'
+
+Only subtract if we know it's >= 0.
+
+Signed-off-by: Jens Axboe <axboe@kernel.dk>
+---
+ src/queue.c | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/src/queue.c b/src/queue.c
+index a6376a6..16edd16 100644
+--- a/src/queue.c
++++ b/src/queue.c
+@@ -58,7 +58,8 @@ int __io_uring_get_cqe(struct io_uring *ring, struct io_uring_cqe **cqe_ptr,
+ 			wait_nr = 0;
+ 		if (ret < 0)
+ 			err = -errno;
+-		submit -= ret;
++		else
++			submit -= ret;
+ 		if (cqe)
+ 			break;
+ 	} while (!err);
+-- 
+1.8.3.1
+
