@@ -1,4 +1,4 @@
-%define alicloud_base_release 3
+%define alicloud_base_release 4
 
 Name: liburing
 Version: 0.3
@@ -10,6 +10,7 @@ Patch0: 0001-test-accept-reuse-fix-C99-ism.patch
 Patch1: 0002-__io_uring_get_cqe-eliminate-unnecessary-io_uring_en.patch
 Patch2: 0003-__io_uring_get_cqe-don-t-subtract-negative-error-fro.patch
 Patch3: 0004-__io_uring_get_cqe-fix-spurious-EAGAIN.patch
+Patch4: 0005-__io_uring_get_cqe-remove-redundant-wait_nr-clear.patch
 URL: https://git.kernel.dk/cgit/liburing/
 BuildRequires: gcc
 
@@ -55,6 +56,9 @@ LDFLAGS="${LDFLAGS:-%__global_ldflags}"; export LDFLAGS
 %{_mandir}/man2/*
 
 %changelog
+* Thu Mar 5 2020 Chunmei Xu <xuchunmei@linux.alibaba.com> - 0.3-1.4.alnx
+- __io_uring_get_cqe: remove redundant wait_nr clear
+
 * Wed Mar 4 2020 Chunmei Xu <xuchunmei@linux.alibaba.com> - 0.3-1.3.alnx
 - __io_uring_get_cqe: eliminate unnecessary io_uring_enter() syscalls
 
