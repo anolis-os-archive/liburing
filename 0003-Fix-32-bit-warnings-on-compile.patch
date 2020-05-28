@@ -1,0 +1,82 @@
+From ea020b5497954a41a61e352666f0bd0b3afde874 Mon Sep 17 00:00:00 2001
+From: Jens Axboe <axboe@kernel.dk>
+Date: Fri, 24 Apr 2020 07:47:50 -0600
+Subject: [PATCH] Fix 32-bit warnings on compile
+
+Signed-off-by: Jens Axboe <axboe@kernel.dk>
+---
+ src/include/liburing.h  | 5 +++--
+ test/lfs-openat-write.c | 3 +++
+ test/lfs-openat.c       | 3 +++
+ test/read-write.c       | 3 ++-
+ test/send_recvmsg.c     | 2 +-
+ 5 files changed, 12 insertions(+), 4 deletions(-)
+
+diff --git a/src/include/liburing.h b/src/include/liburing.h
+index d2a16f6..ae5542c 100644
+--- a/src/include/liburing.h
++++ b/src/include/liburing.h
+@@ -330,8 +330,9 @@ static inline void io_uring_prep_files_update(struct io_uring_sqe *sqe,
+ static inline void io_uring_prep_fallocate(struct io_uring_sqe *sqe, int fd,
+ 					   int mode, off_t offset, off_t len)
+ {
+-	io_uring_prep_rw(IORING_OP_FALLOCATE, sqe, fd, (const void *) len, mode,
+-				offset);
++
++	io_uring_prep_rw(IORING_OP_FALLOCATE, sqe, fd,
++			(const uintptr_t *) (unsigned long) len, mode, offset);
+ }
+ 
+ static inline void io_uring_prep_openat(struct io_uring_sqe *sqe, int dfd,
+diff --git a/test/lfs-openat-write.c b/test/lfs-openat-write.c
+index 951ae7e..9992274 100644
+--- a/test/lfs-openat-write.c
++++ b/test/lfs-openat-write.c
+@@ -1,3 +1,6 @@
++#define _LARGEFILE_SOURCE
++#define _FILE_OFFSET_BITS 64
++
+ #include <liburing.h>
+ #include <string.h>
+ #include <stdio.h>
+diff --git a/test/lfs-openat.c b/test/lfs-openat.c
+index d26111a..d69096e 100644
+--- a/test/lfs-openat.c
++++ b/test/lfs-openat.c
+@@ -1,3 +1,6 @@
++#define _LARGEFILE_SOURCE
++#define _FILE_OFFSET_BITS 64
++
+ #include <string.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+diff --git a/test/read-write.c b/test/read-write.c
+index 9450a8c..4a4a22e 100644
+--- a/test/read-write.c
++++ b/test/read-write.c
+@@ -394,7 +394,8 @@ static int test_eventfd_read(void)
+ 	if (cqe->res == -EINVAL) {
+ 		fprintf(stdout, "eventfd IO not supported, skipping\n");
+ 	} else if (cqe->res != sizeof(eventfd_t)) {
+-		fprintf(stderr, "cqe res %d, wanted %ld\n", cqe->res, sizeof(eventfd_t));
++		fprintf(stderr, "cqe res %d, wanted %d\n", cqe->res,
++						(int) sizeof(eventfd_t));
+ 		return 1;
+ 	}
+ 	io_uring_cqe_seen(&ring, cqe);
+diff --git a/test/send_recvmsg.c b/test/send_recvmsg.c
+index ce08ff1..1b03ce9 100644
+--- a/test/send_recvmsg.c
++++ b/test/send_recvmsg.c
+@@ -103,7 +103,7 @@ static int do_recvmsg(struct io_uring *ring, struct iovec *iov,
+ 		if (bid != BUF_BID)
+ 			fprintf(stderr, "Buffer ID mismatch %d\n", bid);
+ 		/* just for passing the pointer to str */
+-		iov->iov_base = (void *) cqe->user_data;
++		iov->iov_base = (void *) (uintptr_t) cqe->user_data;
+ 	}
+ 
+ 	if (rd->no_buf_add && rd->buf_select) {
+-- 
+1.8.3.1
+

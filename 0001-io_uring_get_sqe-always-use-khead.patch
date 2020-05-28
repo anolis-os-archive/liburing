@@ -1,0 +1,36 @@
+From 0a327806c82a40eb20cc6029a7ae08a4bc7620aa Mon Sep 17 00:00:00 2001
+From: Jens Axboe <axboe@kernel.dk>
+Date: Wed, 22 Apr 2020 10:12:08 -0600
+Subject: [PATCH] io_uring_get_sqe: always use khead
+
+If we submit a batch of requests via io_uring_submit() but get some
+kind of error (like -EBUSY), the internal state has been flushed to
+the SQ ring. We can then get into a situation where we think have more
+than ring-size number of requests available, which can cause duplicate
+submissions of requests.
+
+Should be safe to always use the shared state for this, and it avoids
+repeat flushing bumping the size.
+
+Reported-by: Roman Gershman <romange@gmail.com>
+Signed-off-by: Jens Axboe <axboe@kernel.dk>
+---
+ src/queue.c | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/src/queue.c b/src/queue.c
+index 75d707d..c56d492 100644
+--- a/src/queue.c
++++ b/src/queue.c
+@@ -259,8 +259,5 @@ struct io_uring_sqe *io_uring_get_sqe(struct io_uring *ring)
+ {
+ 	struct io_uring_sq *sq = &ring->sq;
+ 
+-	if (!(ring->flags & IORING_SETUP_SQPOLL))
+-		return __io_uring_get_sqe(sq, sq->sqe_head);
+-
+ 	return __io_uring_get_sqe(sq, io_uring_smp_load_acquire(sq->khead));
+ }
+-- 
+1.8.3.1
+

@@ -1,16 +1,24 @@
-%define alicloud_base_release 4
+%define alicloud_base_release 1
 
 Name: liburing
-Version: 0.3
+Version: 0.6
 Release: 1.%{alicloud_base_release}%{?dist}.alnx
 Summary: Linux-native io_uring I/O access library
-License: LGPLv2+
+License: (GPLv2 with exceptions and LGPLv2+) or MIT
 Source: https://brick.kernel.dk/snaps/%{name}-%{version}.tar.gz
-Patch0: 0001-test-accept-reuse-fix-C99-ism.patch
-Patch1: 0002-__io_uring_get_cqe-eliminate-unnecessary-io_uring_en.patch
-Patch2: 0003-__io_uring_get_cqe-don-t-subtract-negative-error-fro.patch
-Patch3: 0004-__io_uring_get_cqe-fix-spurious-EAGAIN.patch
-Patch4: 0005-__io_uring_get_cqe-remove-redundant-wait_nr-clear.patch
+Patch0: 0001-io_uring_get_sqe-always-use-khead.patch
+Patch1: 0002-__io_uring_get_cqe-silence-signed-vs-unsigned-compar.patch
+Patch2: 0003-Fix-32-bit-warnings-on-compile.patch
+Patch3: 0004-Use-__off64_t-for-offsets.patch
+Patch4: 0005-Use-uint64_t-for-splice-offsets.patch
+Patch5: 0006-fix-build-on-musl-libc.patch
+Patch6: 0007-fix-missing-include-sys-stat.h-in-src-include-liburi.patch
+Patch7: 0008-update-io_uring.h-with-tee.patch
+Patch8: 0009-preseve-wait_nr-if-SETUP_IOPOLL-is-set.patch
+Patch9: 0010-update-wait_nr-to-account-for-completed-event.patch
+Patch10: 0011-remove-duplicate-call-to-__io_uring_peek_cqe.patch
+Patch11: 0012-Add-CQ-ring-flags-field.patch
+Patch12: 0013-Add-helpers-to-set-and-get-eventfd-notification-stat.patch
 URL: https://git.kernel.dk/cgit/liburing/
 BuildRequires: gcc
 
@@ -36,7 +44,7 @@ for the Linux-native io_uring.
 %build
 CFLAGS="${CFLAGS:-%__global_cflags}" ; export CFLAGS
 LDFLAGS="${LDFLAGS:-%__global_ldflags}"; export LDFLAGS
-./configure --prefix=%{_prefix} --libdir=/%{_libdir} --mandir=%{_mandir} --includedir=%{_includedir}
+./configure --prefix=%{_prefix} --libdir=/%{_libdir} --libdevdir=/%{_libdir} --mandir=%{_mandir} --includedir=%{_includedir}
 
 %make_build
 
@@ -56,6 +64,9 @@ LDFLAGS="${LDFLAGS:-%__global_ldflags}"; export LDFLAGS
 %{_mandir}/man2/*
 
 %changelog
+* Thu May 28 2020 Chunmei Xu <xuchunmei@linux.alibaba.com> - 0.6-1.1.alnx
+- update version to 0.6
+
 * Thu Mar 5 2020 Chunmei Xu <xuchunmei@linux.alibaba.com> - 0.3-1.4.alnx
 - __io_uring_get_cqe: remove redundant wait_nr clear
 

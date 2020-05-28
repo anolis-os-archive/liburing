@@ -1,0 +1,108 @@
+From 36c05ec4a0a69a91b1779dce74347361dfc560b8 Mon Sep 17 00:00:00 2001
+From: Bijan Mottahedeh <bijan.mottahedeh@oracle.com>
+Date: Tue, 19 May 2020 14:52:21 -0700
+Subject: [PATCH] remove duplicate call to __io_uring_peek_cqe()
+
+Remove the __io_uring_peek_cqe() call from io_uring_wait_cqe_nr()
+since the former is unconditionally called from io_uring_wait_cqe_nr()
+-> __io_uring_get_cqe(). Also move __io_uring_get_cqe() together with
+__io_uring_get_cqe() since that's now the only caller.
+
+Signed-off-by: Bijan Mottahedeh <bijan.mottahedeh@oracle.com>
+Signed-off-by: Jens Axboe <axboe@kernel.dk>
+---
+ src/include/liburing.h | 32 --------------------------------
+ src/queue.c            | 27 +++++++++++++++++++++++++++
+ 2 files changed, 27 insertions(+), 32 deletions(-)
+
+diff --git a/src/include/liburing.h b/src/include/liburing.h
+index dd85f7b..4311325 100644
+--- a/src/include/liburing.h
++++ b/src/include/liburing.h
+@@ -444,32 +444,6 @@ static inline unsigned io_uring_cq_ready(struct io_uring *ring)
+ 	return io_uring_smp_load_acquire(ring->cq.ktail) - *ring->cq.khead;
+ }
+ 
+-static int __io_uring_peek_cqe(struct io_uring *ring, struct io_uring_cqe **cqe_ptr)
+-{
+-	struct io_uring_cqe *cqe;
+-	unsigned head;
+-	int err = 0;
+-
+-	do {
+-		io_uring_for_each_cqe(ring, head, cqe)
+-			break;
+-		if (cqe) {
+-			if (cqe->user_data == LIBURING_UDATA_TIMEOUT) {
+-				if (cqe->res < 0)
+-					err = cqe->res;
+-				io_uring_cq_advance(ring, 1);
+-				if (!err)
+-					continue;
+-				cqe = NULL;
+-			}
+-		}
+-		break;
+-	} while (1);
+-
+-	*cqe_ptr = cqe;
+-	return err;
+-}
+-
+ /*
+  * Return an IO completion, waiting for 'wait_nr' completions if one isn't
+  * readily available. Returns 0 with cqe_ptr filled in on success, -errno on
+@@ -479,12 +453,6 @@ static inline int io_uring_wait_cqe_nr(struct io_uring *ring,
+ 				      struct io_uring_cqe **cqe_ptr,
+ 				      unsigned wait_nr)
+ {
+-	int err;
+-
+-	err = __io_uring_peek_cqe(ring, cqe_ptr);
+-	if (err || *cqe_ptr)
+-		return err;
+-
+ 	return __io_uring_get_cqe(ring, cqe_ptr, 0, wait_nr, NULL);
+ }
+ 
+diff --git a/src/queue.c b/src/queue.c
+index da2f405..3db52bd 100644
+--- a/src/queue.c
++++ b/src/queue.c
+@@ -32,6 +32,33 @@ static inline bool sq_ring_needs_enter(struct io_uring *ring,
+ 	return false;
+ }
+ 
++static int __io_uring_peek_cqe(struct io_uring *ring,
++			       struct io_uring_cqe **cqe_ptr)
++{
++	struct io_uring_cqe *cqe;
++	unsigned head;
++	int err = 0;
++
++	do {
++		io_uring_for_each_cqe(ring, head, cqe)
++			break;
++		if (cqe) {
++			if (cqe->user_data == LIBURING_UDATA_TIMEOUT) {
++				if (cqe->res < 0)
++					err = cqe->res;
++				io_uring_cq_advance(ring, 1);
++				if (!err)
++					continue;
++				cqe = NULL;
++			}
++		}
++		break;
++	} while (1);
++
++	*cqe_ptr = cqe;
++	return err;
++}
++
+ int __io_uring_get_cqe(struct io_uring *ring, struct io_uring_cqe **cqe_ptr,
+ 		       unsigned submit, unsigned wait_nr, sigset_t *sigmask)
+ {
+-- 
+1.8.3.1
+

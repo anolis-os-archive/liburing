@@ -1,0 +1,60 @@
+From 0f0517331307605e576b3492c93dc4988e06fdc0 Mon Sep 17 00:00:00 2001
+From: Stefano Garzarella <sgarzare@redhat.com>
+Date: Wed, 20 May 2020 19:07:10 +0200
+Subject: [PATCH] Add CQ ring 'flags' field
+
+io_uring provides the new CQ ring 'flags' field if 'cq_off.flags'
+is not zero. In this case we set the 'cq->kflags' pointer, otherwise
+it will be NULL.
+
+Signed-off-by: Stefano Garzarella <sgarzare@redhat.com>
+Signed-off-by: Jens Axboe <axboe@kernel.dk>
+---
+ src/include/liburing.h          | 1 +
+ src/include/liburing/io_uring.h | 4 +++-
+ src/setup.c                     | 2 ++
+ 3 files changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/src/include/liburing.h b/src/include/liburing.h
+index 4311325..adc8db9 100644
+--- a/src/include/liburing.h
++++ b/src/include/liburing.h
+@@ -41,6 +41,7 @@ struct io_uring_cq {
+ 	unsigned *ktail;
+ 	unsigned *kring_mask;
+ 	unsigned *kring_entries;
++	unsigned *kflags;
+ 	unsigned *koverflow;
+ 	struct io_uring_cqe *cqes;
+ 
+diff --git a/src/include/liburing/io_uring.h b/src/include/liburing/io_uring.h
+index a279151..9860a8a 100644
+--- a/src/include/liburing/io_uring.h
++++ b/src/include/liburing/io_uring.h
+@@ -205,7 +205,9 @@ struct io_cqring_offsets {
+ 	__u32 ring_entries;
+ 	__u32 overflow;
+ 	__u32 cqes;
+-	__u64 resv[2];
++	__u32 flags;
++	__u32 resv1;
++	__u64 resv2;
+ };
+ 
+ /*
+diff --git a/src/setup.c b/src/setup.c
+index f783b6a..860c112 100644
+--- a/src/setup.c
++++ b/src/setup.c
+@@ -76,6 +76,8 @@ err:
+ 	cq->kring_entries = cq->ring_ptr + p->cq_off.ring_entries;
+ 	cq->koverflow = cq->ring_ptr + p->cq_off.overflow;
+ 	cq->cqes = cq->ring_ptr + p->cq_off.cqes;
++	if (p->cq_off.flags)
++		cq->kflags = cq->ring_ptr + p->cq_off.flags;
+ 	return 0;
+ }
+ 
+-- 
+1.8.3.1
+

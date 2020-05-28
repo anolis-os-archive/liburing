@@ -1,0 +1,44 @@
+From e62b6441c3e16019df07133f90969f0a3e3889c6 Mon Sep 17 00:00:00 2001
+From: Jens Axboe <axboe@kernel.dk>
+Date: Wed, 22 Apr 2020 19:35:42 -0600
+Subject: [PATCH] __io_uring_get_cqe: silence signed vs unsigned comparison
+ warning
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Some compilers throw:
+
+file: "/libs/liburing/src/queue.c"
+line: 61 warning: comparison of integer expressions of different
+signedness: ‘int’ and ‘unsigned int’
+`} else if (ret == submit) {`
+
+Shouldn't really matter, we already checked if ret < 0 before doing
+this comparison. And since 'submit' or 'ret' can't be larger than the
+max ring size, there's on risk of overflow either.
+
+But just cast the 'submit' variable to a signed int, that should get
+rid of it.
+
+Signed-off-by: Jens Axboe <axboe@kernel.dk>
+---
+ src/queue.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/queue.c b/src/queue.c
+index c56d492..14a0777 100644
+--- a/src/queue.c
++++ b/src/queue.c
+@@ -58,7 +58,7 @@ int __io_uring_get_cqe(struct io_uring *ring, struct io_uring_cqe **cqe_ptr,
+ 						   wait_nr, flags, sigmask);
+ 		if (ret < 0) {
+ 			err = -errno;
+-		} else if (ret == submit) {
++		} else if (ret == (int)submit) {
+ 			submit = 0;
+ 			wait_nr = 0;
+ 		} else {
+-- 
+1.8.3.1
+

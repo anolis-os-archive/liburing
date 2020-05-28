@@ -1,0 +1,38 @@
+From 87bad14841fa56609c796e88cccbfb5466bf7a0f Mon Sep 17 00:00:00 2001
+From: Bijan Mottahedeh <bijan.mottahedeh@oracle.com>
+Date: Tue, 19 May 2020 14:52:19 -0700
+Subject: [PATCH] preseve wait_nr if SETUP_IOPOLL is set
+
+When SETUP_IOPOLL is set, __sys_io_uring_enter() must be called to reap
+new completions but the call won't be made if both wait_nr and submit
+are zero, so preserve wait_nr.
+
+Signed-off-by: Bijan Mottahedeh <bijan.mottahedeh@oracle.com>
+Signed-off-by: Jens Axboe <axboe@kernel.dk>
+---
+ src/queue.c | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/src/queue.c b/src/queue.c
+index 14a0777..c7473c0 100644
+--- a/src/queue.c
++++ b/src/queue.c
+@@ -60,7 +60,14 @@ int __io_uring_get_cqe(struct io_uring *ring, struct io_uring_cqe **cqe_ptr,
+ 			err = -errno;
+ 		} else if (ret == (int)submit) {
+ 			submit = 0;
+-			wait_nr = 0;
++			/*
++			 * When SETUP_IOPOLL is set, __sys_io_uring enter()
++			 * must be called to reap new completions but the call
++			 * won't be made if both wait_nr and submit are zero
++			 * so preserve wait_nr.
++			 */
++			if (!(ring->flags & IORING_SETUP_IOPOLL))
++				wait_nr = 0;
+ 		} else {
+ 			submit -= ret;
+ 		}
+-- 
+1.8.3.1
+

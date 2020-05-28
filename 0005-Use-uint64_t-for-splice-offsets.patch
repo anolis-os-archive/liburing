@@ -1,0 +1,32 @@
+From df7565665fe7f2663cedda39533609aa3a142ec8 Mon Sep 17 00:00:00 2001
+From: Jens Axboe <axboe@kernel.dk>
+Date: Wed, 29 Apr 2020 13:36:59 -0600
+Subject: [PATCH] Use uint64_t for splice offsets
+
+Apparently __off64_t is a glibc'ism. Give up on the offset types, let's
+just use a 64-bit unsigned type.
+
+Fixes: b5096098c62a ("Use __off64_t for offsets")
+Signed-off-by: Jens Axboe <axboe@kernel.dk>
+---
+ src/include/liburing.h | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/include/liburing.h b/src/include/liburing.h
+index 2c8beef..56e32d7 100644
+--- a/src/include/liburing.h
++++ b/src/include/liburing.h
+@@ -193,8 +193,8 @@ static inline void io_uring_prep_rw(int op, struct io_uring_sqe *sqe, int fd,
+ }
+ 
+ static inline void io_uring_prep_splice(struct io_uring_sqe *sqe,
+-					int fd_in, __off64_t off_in,
+-					int fd_out, __off64_t off_out,
++					int fd_in, uint64_t off_in,
++					int fd_out, uint64_t off_out,
+ 					unsigned int nbytes,
+ 					unsigned int splice_flags)
+ {
+-- 
+1.8.3.1
+

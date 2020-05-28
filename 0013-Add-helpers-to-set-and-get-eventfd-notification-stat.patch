@@ -1,0 +1,95 @@
+From 305bf9beb9c59d461cd3d040c141d04479f22e52 Mon Sep 17 00:00:00 2001
+From: Stefano Garzarella <sgarzare@redhat.com>
+Date: Wed, 20 May 2020 19:07:12 +0200
+Subject: [PATCH] Add helpers to set and get eventfd notification status
+
+This patch adds the new IORING_CQ_EVENTFD_DISABLED flag. It can be
+used to disable/enable notifications from the kernel when a
+request is completed and queued to the CQ ring.
+
+We also add two helpers function to check if the notifications are
+enabled and to toggle them.
+
+If the kernel doesn't provide CQ ring flags, the notifications are
+always enabled if an eventfd is registered.
+
+Signed-off-by: Stefano Garzarella <sgarzare@redhat.com>
+Signed-off-by: Jens Axboe <axboe@kernel.dk>
+---
+ src/include/liburing.h          | 33 +++++++++++++++++++++++++++++++++
+ src/include/liburing/io_uring.h |  7 +++++++
+ 2 files changed, 40 insertions(+)
+
+diff --git a/src/include/liburing.h b/src/include/liburing.h
+index adc8db9..0192b47 100644
+--- a/src/include/liburing.h
++++ b/src/include/liburing.h
+@@ -9,7 +9,9 @@ extern "C" {
+ #include <sys/socket.h>
+ #include <sys/uio.h>
+ #include <sys/stat.h>
++#include <errno.h>
+ #include <signal.h>
++#include <stdbool.h>
+ #include <inttypes.h>
+ #include <time.h>
+ #include "liburing/compat.h"
+@@ -445,6 +447,37 @@ static inline unsigned io_uring_cq_ready(struct io_uring *ring)
+ 	return io_uring_smp_load_acquire(ring->cq.ktail) - *ring->cq.khead;
+ }
+ 
++static inline bool io_uring_cq_eventfd_enabled(struct io_uring *ring)
++{
++	if (!ring->cq.kflags)
++		return true;
++
++	return !(*ring->cq.kflags & IORING_CQ_EVENTFD_DISABLED);
++}
++
++static inline int io_uring_cq_eventfd_toggle(struct io_uring *ring,
++					     bool enabled)
++{
++	uint32_t flags;
++
++	if (!!enabled == io_uring_cq_eventfd_enabled(ring))
++		return 0;
++
++	if (!ring->cq.kflags)
++		return -EOPNOTSUPP;
++
++	flags = *ring->cq.kflags;
++
++	if (enabled)
++		flags &= ~IORING_CQ_EVENTFD_DISABLED;
++	else
++		flags |= IORING_CQ_EVENTFD_DISABLED;
++
++	IO_URING_WRITE_ONCE(*ring->cq.kflags, flags);
++
++	return 0;
++}
++
+ /*
+  * Return an IO completion, waiting for 'wait_nr' completions if one isn't
+  * readily available. Returns 0 with cqe_ptr filled in on success, -errno on
+diff --git a/src/include/liburing/io_uring.h b/src/include/liburing/io_uring.h
+index 9860a8a..92c2269 100644
+--- a/src/include/liburing/io_uring.h
++++ b/src/include/liburing/io_uring.h
+@@ -211,6 +211,13 @@ struct io_cqring_offsets {
+ };
+ 
+ /*
++ * cq_ring->flags
++ */
++
++/* disable eventfd notifications */
++#define IORING_CQ_EVENTFD_DISABLED	(1U << 0)
++
++/*
+  * io_uring_enter(2) flags
+  */
+ #define IORING_ENTER_GETEVENTS	(1U << 0)
+-- 
+1.8.3.1
+

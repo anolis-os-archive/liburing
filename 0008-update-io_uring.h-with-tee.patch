@@ -1,0 +1,26 @@
+From 7cacedddbf2a2df14a3d1180d2f85a8a3f9ddf66 Mon Sep 17 00:00:00 2001
+From: Pavel Begunkov <asml.silence@gmail.com>
+Date: Sun, 17 May 2020 14:23:45 +0300
+Subject: [PATCH] update io_uring.h with tee()
+
+Signed-off-by: Pavel Begunkov <asml.silence@gmail.com>
+Signed-off-by: Jens Axboe <axboe@kernel.dk>
+---
+ src/include/liburing/io_uring.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/include/liburing/io_uring.h b/src/include/liburing/io_uring.h
+index e48d746..a279151 100644
+--- a/src/include/liburing/io_uring.h
++++ b/src/include/liburing/io_uring.h
+@@ -129,6 +129,7 @@ enum {
+ 	IORING_OP_SPLICE,
+ 	IORING_OP_PROVIDE_BUFFERS,
+ 	IORING_OP_REMOVE_BUFFERS,
++	IORING_OP_TEE,
+ 
+ 	/* this goes last, obviously */
+ 	IORING_OP_LAST,
+-- 
+1.8.3.1
+
