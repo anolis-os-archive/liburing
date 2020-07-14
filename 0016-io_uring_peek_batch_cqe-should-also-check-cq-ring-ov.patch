@@ -1,0 +1,50 @@
+From 20a7c0108734f01264fb4edadefe7bc96ac58855 Mon Sep 17 00:00:00 2001
+From: Xiaoguang Wang <xiaoguang.wang@linux.alibaba.com>
+Date: Thu, 9 Jul 2020 15:33:49 +0800
+Subject: [PATCH] io_uring_peek_batch_cqe should also check cq ring overflow
+
+In io_uring_peek_batch_cqe(), if the first peek could not find any
+cqes, we check cq ring overflow, and if cq ring has been overflowed,
+enter kernel to flush cqes, and do the second peek.
+
+Signed-off-by: Xiaoguang Wang <xiaoguang.wang@linux.alibaba.com>
+Signed-off-by: Jens Axboe <axboe@kernel.dk>
+---
+ src/queue.c | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/src/queue.c b/src/queue.c
+index 1e42881..9256dcd 100644
+--- a/src/queue.c
++++ b/src/queue.c
+@@ -125,7 +125,9 @@ unsigned io_uring_peek_batch_cqe(struct io_uring *ring,
+ 				 struct io_uring_cqe **cqes, unsigned count)
+ {
+ 	unsigned ready;
++	bool overflow_checked = false;
+ 
++again:
+ 	ready = io_uring_cq_ready(ring);
+ 	if (ready) {
+ 		unsigned head = *ring->cq.khead;
+@@ -141,6 +143,17 @@ unsigned io_uring_peek_batch_cqe(struct io_uring *ring,
+ 		return count;
+ 	}
+ 
++	if (overflow_checked)
++		goto done;
++
++	if (cq_ring_needs_flush(ring)) {
++		__sys_io_uring_enter(ring->ring_fd, 0, 0,
++				     IORING_ENTER_GETEVENTS, NULL);
++		overflow_checked = true;
++		goto again;
++	}
++
++done:
+ 	return 0;
+ }
+ 
+-- 
+1.8.3.1
+

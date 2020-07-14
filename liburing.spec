@@ -1,4 +1,4 @@
-%define alicloud_base_release 1
+%define alicloud_base_release 2
 
 Name: liburing
 Version: 0.6
@@ -19,6 +19,9 @@ Patch9: 0010-update-wait_nr-to-account-for-completed-event.patch
 Patch10: 0011-remove-duplicate-call-to-__io_uring_peek_cqe.patch
 Patch11: 0012-Add-CQ-ring-flags-field.patch
 Patch12: 0013-Add-helpers-to-set-and-get-eventfd-notification-stat.patch
+Patch13: 0014-Check-cq-ring-overflow-status.patch
+Patch14: 0015-test-cq-overflow-peek.patch
+Patch15: 0016-io_uring_peek_batch_cqe-should-also-check-cq-ring-ov.patch
 URL: https://git.kernel.dk/cgit/liburing/
 BuildRequires: gcc
 
@@ -64,6 +67,9 @@ LDFLAGS="${LDFLAGS:-%__global_ldflags}"; export LDFLAGS
 %{_mandir}/man2/*
 
 %changelog
+* Tue Jul 14 2020 Chunmei Xu <xuchunmei@linux.alibaba.com> - 0.6-1.2.alnx
+- fix io_uring io_uring_peek_cqe not check cq ring overflow
+
 * Thu May 28 2020 Chunmei Xu <xuchunmei@linux.alibaba.com> - 0.6-1.1.alnx
 - update version to 0.6
 

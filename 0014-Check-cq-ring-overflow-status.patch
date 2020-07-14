@@ -1,0 +1,76 @@
+From 122eca6a1da3cb96cca037c7f38383e30cf224e0 Mon Sep 17 00:00:00 2001
+From: Xiaoguang Wang <xiaoguang.wang@linux.alibaba.com>
+Date: Thu, 9 Jul 2020 09:16:20 +0800
+Subject: [PATCH] Check cq ring overflow status
+
+If cq ring has been overflowed, need to enter kernel to flush cqes.
+
+Signed-off-by: Xiaoguang Wang <xiaoguang.wang@linux.alibaba.com>
+Signed-off-by: Jens Axboe <axboe@kernel.dk>
+---
+ src/include/liburing/io_uring.h |  1 +
+ src/queue.c                     | 17 +++++++++++++----
+ 2 files changed, 14 insertions(+), 4 deletions(-)
+
+diff --git a/src/include/liburing/io_uring.h b/src/include/liburing/io_uring.h
+index 92c2269..7843742 100644
+--- a/src/include/liburing/io_uring.h
++++ b/src/include/liburing/io_uring.h
+@@ -197,6 +197,7 @@ struct io_sqring_offsets {
+  * sq_ring->flags
+  */
+ #define IORING_SQ_NEED_WAKEUP	(1U << 0) /* needs io_uring_enter wakeup */
++#define IORING_SQ_CQ_OVERFLOW	(1U << 1) /* CQ ring is overflown */
+ 
+ struct io_cqring_offsets {
+ 	__u32 head;
+diff --git a/src/queue.c b/src/queue.c
+index 3db52bd..1e42881 100644
+--- a/src/queue.c
++++ b/src/queue.c
+@@ -32,6 +32,11 @@ static inline bool sq_ring_needs_enter(struct io_uring *ring,
+ 	return false;
+ }
+ 
++static inline bool cq_ring_needs_flush(struct io_uring *ring)
++{
++	return IO_URING_READ_ONCE(*ring->sq.kflags) & IORING_SQ_CQ_OVERFLOW;
++}
++
+ static int __io_uring_peek_cqe(struct io_uring *ring,
+ 			       struct io_uring_cqe **cqe_ptr)
+ {
+@@ -67,22 +72,26 @@ int __io_uring_get_cqe(struct io_uring *ring, struct io_uring_cqe **cqe_ptr,
+ 	int ret = 0, err;
+ 
+ 	do {
++		bool cq_overflow_flush = false;
+ 		unsigned flags = 0;
+ 
+ 		err = __io_uring_peek_cqe(ring, &cqe);
+ 		if (err)
+ 			break;
+ 		if (!cqe && !to_wait && !submit) {
+-			err = -EAGAIN;
+-			break;
++			if (!cq_ring_needs_flush(ring)) {
++				err = -EAGAIN;
++				break;
++			}
++			cq_overflow_flush = true;
+ 		}
+ 		if (wait_nr && cqe)
+ 			wait_nr--;
+-		if (wait_nr)
++		if (wait_nr || cq_overflow_flush)
+ 			flags = IORING_ENTER_GETEVENTS;
+ 		if (submit)
+ 			sq_ring_needs_enter(ring, submit, &flags);
+-		if (wait_nr || submit)
++		if (wait_nr || submit || cq_overflow_flush)
+ 			ret = __sys_io_uring_enter(ring->ring_fd, submit,
+ 						   wait_nr, flags, sigmask);
+ 		if (ret < 0) {
+-- 
+1.8.3.1
+
