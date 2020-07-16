@@ -1,0 +1,30 @@
+From dcf9faa457562a85eb89f8c791797886b0bf49bf Mon Sep 17 00:00:00 2001
+From: Jens Axboe <axboe@kernel.dk>
+Date: Wed, 8 Jul 2020 09:36:17 -0600
+Subject: [PATCH] test/cq-overflow: correct error condition
+
+We only care about if we get less than 8, it's perfectly valid to
+get the full 16. In fact, once we modify peek to ensure we flush
+kernel side overflows, we will get more.
+
+Signed-off-by: Jens Axboe <axboe@kernel.dk>
+---
+ test/cq-overflow.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/test/cq-overflow.c b/test/cq-overflow.c
+index cad306d..37b8d24 100644
+--- a/test/cq-overflow.c
++++ b/test/cq-overflow.c
+@@ -441,7 +441,7 @@ static int test_overflow_nodrop_submit_ebusy(void)
+ 	if (ret < 0) {
+ 		fprintf(stderr, "ret=%d\n", ret);
+ 		goto err;
+-	} else if (ret != 8) {
++	} else if (ret < 8) {
+ 		fprintf(stderr, "only found %d events, expected 8\n", ret);
+ 		goto err;
+ 	}
+-- 
+1.8.3.1
+

@@ -1,0 +1,30 @@
+From 17287a19ab86b33404845e176077b0ffd869ba87 Mon Sep 17 00:00:00 2001
+From: Jens Axboe <axboe@kernel.dk>
+Date: Wed, 8 Jul 2020 09:42:30 -0600
+Subject: [PATCH] test/cq-full: correct error condition
+
+We only care about if we get less than 8, it's perfectly valid to
+get the full 12. In fact, once we modify peek to ensure we flush
+kernel side overflows, we will get more.
+
+Signed-off-by: Jens Axboe <axboe@kernel.dk>
+---
+ test/cq-full.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/test/cq-full.c b/test/cq-full.c
+index 8408371..5c4041b 100644
+--- a/test/cq-full.c
++++ b/test/cq-full.c
+@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
+ 		i++;
+ 	} while (1);
+ 
+-	if (i != 8 ||
++	if (i < 8 ||
+ 	    ((*ring.cq.koverflow != 4) && !(p.features & IORING_FEAT_NODROP))) {
+ 		printf("CQ overflow fail: %d completions, %u overflow\n", i,
+ 				*ring.cq.koverflow);
+-- 
+1.8.3.1
+
